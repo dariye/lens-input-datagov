@@ -1,33 +1,66 @@
 <link rel="import" href="../polymer/polymer.html"> 
 <link rel="import" href="../core-input/core-input.html"> 
 
-
 <!--
-Simple API component to make API calls. If the API returns JSON with a header followed by an array of results, it will return the first array. Flattens the results to be one level deep, and sends the reuslts to <code>output</code>
+API component to make API calls to <a href="http://catalog.data.gov/dataset"> data.gov</a>. An initial query to Data.gov returns <code>datasets</code> showing all the public access points. Any available access point can be queried to return <code>output</code>.
 
 ##### Example
 
-    <lens-input-simple-api url="http://api.openweathermap.org/data/2.5/weather?q=New+York&units=imperial"></lens-input-simple-api>
+    <lens-input-datagov url="http://data.consumerfinance.gov/api/views.json"></lens-input-datagov>
 
-@element lens-input-simple-api
-@blurb Simple API component to make API calls.
+@element lens-input-datagov
+@blurb Custom API component to make API calls to <a href="http://data.consumerfinance.gov/api/views.json">Data.gov</a>.
 @status alpha
-@homepage http://lenses.github.io/lens-input-simple-api
+@homepage http://lenses.github.io/lens-input-datagov
 -->
 
-<polymer-element name="lens-input-simple-api" attributes="url output outputRaw minRows">
+<polymer-element name="lens-input-datagov" attributes="baseUrl url output outputRaw datasets orgs query numberofRows minRows">
   <template>
-    <link rel="stylesheet" href="lens-input-simple-api.css">
+    <link rel="stylesheet" href="lens-input-datagov.css">
     <div class="lens-container">
+      <div>
+        <h2>Making Call to data.gov...</h2>
+        <p>
+          <label class="label">DataSource: </label>
+          <input is="core-input" value="{{baseUrl}}"></input>
+        </p>
+        
+       <div><label class="label">Number of Rows Retrieved from Data.Gov(Default: 10) </label><input is="core-input" value="{{numberOfRows}}"></div>
+       <div><p>Organization DataSets: <span value="{{datasets.length}}"></span></p></div>
+      </div>
+      <div><label class="label">Search Data.Gov: </label><input is="core-input" value="{{query}}"></input></div>
+      <div>
+        <h2>Data Sets Retrieved:</h2>
+          <dl>
+          <template id="datasets" repeat="{{org in orgs}}"> 
+            
+            <template id="urlExists" if="{{org.endpoints.length > 0}}">
+              <dt><b> {{org.name}}</b></dt> 
+              <template id="endpoint" repeat="{{endpoint in org.endpoints}}">
+                <dd>
+                  <label class="label"><span><em>URL Endpoint</em></span></label>
+                  <input is="core-input" value="{{endpoint}}"></input>
+                </dd>
+              </template>
+            </template>
+            <!-- <template id="noUrl" if="{{org.endpoints.length == 0}}"> -->
+            <!--     <i> None </i> -->
+            <!-- </template> -->
+          </template>
+          </dl>
+      </div>
+      
+     
       <div><label class="label">API URL: </label><input is="core-input" value="{{url}}"></div>
       <div><label class="label">Expect at least <input class="count" is="core-input" value="{{minRows}}"> datapoints.</label></div>
-
+      
       <div><label class="label">Num Records: </label><div class="data">{{output.length}}</div></div>
     </div>
     
-  </template>
+   </template>
+
   <script>
-    Polymer({
+    Polymer('lens-input-datagov',{
 
       /**
        * Output data
@@ -47,13 +80,43 @@ Simple API component to make API calls. If the API returns JSON with a header fo
       
 
       /**
+       * BaseURL for Datasets on Data.Gov
+       * @property baseUrl
+       * @type string
+       * @default http://catalog.data.gov/api/3/action/package_search?
+       */
+      baseUrl: 'http://catalog.data.gov/api/3/action/package_search?',
+      /**
        *  URL for the API call
        *  
        *  @property url
        *  @type string
        *  @default null
        */
-      url: null,//'https://api.enigma.io/v2/data/iTX3qf5cwspm7ryII3ii5zqeHqUuoO4MctfLJFf2xU8eletxHvcI4/us.gov.atf.federal-firearms-licenses.complete-listing',
+       url: null,      
+       /**
+       * Output data from baseUrl
+       * @property datasets 
+       * @type array
+       * @default null
+       */
+       // datasets: null,
+      /**
+       * Query
+       * @property query 
+       * @type string
+       * @default null
+       */
+       query: null,
+
+      /**
+       * Default number of rows to query
+       * 
+       * @property numberOfRows
+       * @type integer
+       * @default 10
+       */
+      numberOfRows: 10,
 
       /**
        * Minimum number of rows to expect in the result data, otherwise ignores it
@@ -62,18 +125,41 @@ Simple API component to make API calls. If the API returns JSON with a header fo
       minRows: 1,
 
       observe: {
-        minRows: "queryData"
+        query: "queryDatasets",
+        numberOfRows: "queryDatasets",
+        minRow: "queryData",
+        url: "queryData"
       },
 
       domReady: function() {
 
           var self = this;
-
-          if(this.url) {
-            self.queryData();
+          var baseUrl = self.baseUrl;
+          var query = self.query;
+          if(baseUrl) {
+            self.queryDatasets();
           }
 
+          
       }, 
+      
+     /** 
+      * Query 'http://catalog.data.gov/api/3/action/package_search?', flatten results, and set <code>datasets<code>
+      * @method queryDatasets
+      *
+      */
+
+      queryDatasets: function() {
+        var self = this;
+        var query = self.query;
+        var baseUrl = self.baseUrl + "rows=" + self.numberOfRows.toString(); 
+        if (query && baseUrl){
+          query = self.baseUrl + 'q=' + query; 
+          self._makeCORSCall(query, 'datasets');
+        }else {
+          self._makeCORSCall(baseUrl, 'datasets');
+        }
+      },
 
       /**
        *  Query the API, flatten results, and set <code>output</code>.
@@ -86,7 +172,7 @@ Simple API component to make API calls. If the API returns JSON with a header fo
           var self = this;
           var url = self.url;
           
-          self._makeCORSCall(url);
+          self._makeCORSCall(url, 'dataset');
 
       },
 
@@ -94,7 +180,7 @@ Simple API component to make API calls. If the API returns JSON with a header fo
         this.queryData();
       },
 
-      _makeCORSCall: function(url) {
+      _makeCORSCall: function(url, type) {
 
             var self = this;
             var method = 'GET';
@@ -126,13 +212,44 @@ Simple API component to make API calls. If the API returns JSON with a header fo
 
               // if there is no first array, flatten the entire response
               if (!firstArray) {
-                self.output = [self._flattenJSON(data)];
+                if(type == 'datasets') {
+                  self.datasets = [self.flattenJSON(data)];
+                  }else {
+                  self.output = [self._flattenJSON(data)];
+                }
               }
               // otherwise, flatten the first array
               else {
-                self.output = self._flattenJSONArray(firstArray);
+                if (type == 'datasets') {
+                  self.datasets = self._flattenJSONArray(firstArray);
+                } else {
+                  self.output = self._flattenJSONArray(firstArray);
+                }
               }
+             console.log(self.datasets);
+             console.log(self.datasets[0]['resources[0].url']);
+             console.log(self.datasets.length);
+             console.log(self.output);
+             
+             var orgs = [];
+            
+             for (i = 0; i < self.datasets.length; i++) {
+               console.log(self.datasets[i].num_resources);
+               endpoints = [];
+               for(j = 0; j<self.datasets[i].num_resources; j++) {
+                 if(self.datasets[i]['resources[' + j + '].format'] == "JSON"){
+                   // self.urls.push(self.datasets[i]['resources[' + j + '].url']);
+                   //console.log(self.urls);
+                   endpoints.push(self.datasets[i]['resources[' + j + '].url']);
 
+                 }
+                // endpoints.push(self.datasets[i]['resources[' + j + '].url']);
+
+               }
+               orgs.push({"name": self.datasets[i]['organization.title'], "endpoints": endpoints}); 
+               console.log(orgs);
+               self.orgs = orgs;
+             }
               //self.output = self._flattenFirstArrayInJSON(firstArray, 1);
             };
 

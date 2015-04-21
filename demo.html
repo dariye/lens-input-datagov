@@ -4,7 +4,7 @@
     <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
     <title>lens-input-simple-api Demo</title>
     <script src="../webcomponentsjs/webcomponents.js"></script>
-    <link rel="import" href="lens-input-simple-api.html">
+    <link rel="import" href="lens-input-datagov.html">
 
     <style>
       body {
@@ -59,15 +59,15 @@
     <template id="auto-bind-demo" is="auto-binding">
 
 
-    <p>This is a Simple API component to make API calls. If the API returns JSON with a header followed by an array of results, it will return the first array. Results will be flattened to one level deep.</p>
+    <p>This Lenses input component lets you query data from <a href="http://catalog.data.gov/dataset">data.gov</a>. It lets you browse/search/query data endpoints available on data.gov.</p>
 
-    <p> Enter the URL to make an API call, for example :</p>
-    <pre>https://api.enigma.io/v2/data/iTX3qf5cwspm7ryII3ii5zqeHqUuoO4MctfLJFf2xU8eletxHvcI4/us.gov.atf.federal-firearms-licenses.complete-listing?limit=200</pre>
+    <p>You can specify the number of datasets you'd like to view from data.gov by specifying the number of rows. You can also search using the search field to find available dataset. Upon finding the datasets you'd like to work with(if available), you just copy/paste the url in the API URL field. </p>
+    <pre></pre>
     <p>or</p>
-    <pre>http://api.openweathermap.org/data/2.5/weather?q=New+York&units=imperial</pre>
+    <pre></pre>
       <section class="component">
         <label>Component:</label>
-          <lens-input-simple-api id="component" output="{{myoutput}}" outputRaw="{{myoutputRaw}}"></lens-input-simple-api>
+          <lens-input-datagov id="component" output="{{myoutput}}" outputRaw="{{myoutputRaw}}"></lens-input-datagov>
       </section>
 
 
